@@ -36,21 +36,31 @@ async fn main() -> anyhow::Result<()> {
 
     // build our application with a route
     let app = Router::new()
-        // `GET /` goes to `root`
+        .route("/todos", get(get_todos))
         .layer(Extension(db));
 
-    axum::Server::bind(
-        &"0.0.0.0:3000"
-            .parse()
-            .context("Unable to bind to port 3000")?,
-    )
-    .serve(app.into_make_service())
-    .await
-    .context("Unable to start server")?;
+    axum::Server::bind(&"0.0.0.0:3000".parse().context("Unable to parse to port")?)
+        .serve(app.into_make_service())
+        .await
+        .context("Unable to start server")?;
 
     Ok(())
 }
+
+async fn get_todos(pg: Extension<PgPool>) -> axum::response::Response {
+    (StatusCode::OK, Json(Vec::<ToDoView>::new())).into_response()
+}
+
+
+#[derive(Serialize)]
+struct ToDoView {
+    id: uuid::Uuid,
+    text: String,
+    is_done: bool,
+}
+
 #[derive(Serialize)]
 struct ApiError {
     error: String,
 }
+
